@@ -1,6 +1,9 @@
 package com.tummsmedia.duneswestsafety;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.os.AsyncTask;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 
@@ -36,7 +39,7 @@ import javax.xml.parsers.ParserConfigurationException;
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
-    static final String DATA_URL = "http://dw-safety.com/phpsqlajax_genxml2.php";
+    static final String DATA_URL = "http://www.dw-safety.com/phpsqlajax_genxml2.php";
     public ArrayList<Marker> markerList = new ArrayList<>();
 
     @Override
@@ -48,8 +51,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-
-
+        new MapData().execute();
 
 
     }
@@ -64,31 +66,36 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         @Override
         protected void onPostExecute(String s) {
             super.onPostExecute(s);
+            for (int i = 0; i < markerList.size(); i++) {
+                LatLng markerLatLng = new LatLng(markerList.get(i).getLat(), markerList.get(i).getLng());
+                mMap.addMarker(new MarkerOptions().position(markerLatLng).title(markerList.get(i).getName()));
+            }
+
         }
 
         @Override
-        protected String doInBackground(String... params) {
-            try{
-            URL obj = new URL(DATA_URL);
-            HttpURLConnection conn = (HttpURLConnection) obj.openConnection();
-            conn.setRequestMethod("GET");
-            BufferedReader in = new BufferedReader(
-                    new InputStreamReader(conn.getInputStream()));
-            String inputLine;
-            StringBuffer response = new StringBuffer();
+        protected String doInBackground(String... Params) {
+            try {
+                URL obj = new URL(DATA_URL);
+                HttpURLConnection conn = (HttpURLConnection) obj.openConnection();
+                conn.setRequestMethod("GET");
+                BufferedReader in = new BufferedReader(
+                        new InputStreamReader(conn.getInputStream()));
+                String inputLine;
+                StringBuffer response = new StringBuffer();
 
-            while ((inputLine = in.readLine()) != null) {
-                response.append(inputLine);
-            }
-            in.close();
-            System.out.println(response);
+                while ((inputLine = in.readLine()) != null) {
+                    response.append(inputLine);
+                }
+                in.close();
+                System.out.println(response);
                 byte[] bytes = response.toString().getBytes();
                 InputStream inputStream = new ByteArrayInputStream(bytes);
                 DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
                 DocumentBuilder builder = factory.newDocumentBuilder();
                 Document doc = builder.parse(inputStream);
                 NodeList markers = doc.getElementsByTagName("marker");
-                for (int i=0; i < markers.getLength(); i++){
+                for (int i = 0; i < markers.getLength(); i++) {
                     Node node = markers.item(i);
                     Element marker = (Element) node;
                     String name = marker.getAttribute("name");
@@ -100,13 +107,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     markerList.add(markerObject);
 
                 }
-                for (int i=0; i < markerList.size(); i++) {
-                    LatLng markerLatLng = new LatLng(markerList.get(i).getLat(), markerList.get(i).getLng());
-                    mMap.addMarker(new MarkerOptions().position(markerLatLng).title(markerList.get(i).getName()));
 
-
-                }
-                } catch (ProtocolException e1) {
+            } catch (ProtocolException e1) {
                 e1.printStackTrace();
             } catch (IOException e1) {
                 e1.printStackTrace();
@@ -117,8 +119,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
 
 
-
-        return null;
+            return null;
         }
 
 
@@ -136,7 +137,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      */
     @Override
     public void onMapReady(GoogleMap googleMap) {
-        new MapData().execute();
         mMap = googleMap;
 
 
@@ -145,7 +145,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .target(mtp)
                 .zoom(15)
                 .build();
+
         mMap.moveCamera(CameraUpdateFactory.newCameraPosition(camPos));
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        mMap.setMyLocationEnabled(true);
+
+
+
 
 
     }
